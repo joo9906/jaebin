@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMD 뉴스 클리핑</title>
+<link rel="stylesheet" href="/static/style.css"></head><body id="top">
+<header><div class="top"><div><div class="brand">Strategic Marketing Division</div><div class="sub">CANON MEDICAL SYSTEMS KOREA</div></div><div class="header-actions"><label class="pill main-toggle"><span>메인 일치 기사</span><input type="checkbox" id="include-main" role="switch" aria-label="메인 일치 기사 포함"><span class="switch-track" aria-hidden="true"></span></label><span class="pill">시범 운영</span></div></div></header>
+<main><div class="intro"><div><div class="eyebrow">MARKET & POLICY INTELLIGENCE</div><h1>SMD 뉴스 클리핑</h1><p>우리회사 소식부터 관련 정책 변화, 경쟁사 동향까지 한 곳에서</p></div></div>
+<div class="controls"><input id="search" type="search" aria-label="뉴스 검색" placeholder="기사 제목, 회사·기관, 키워드 검색"><select id="topic" aria-label="분야 필터"><option value="">모든 분야</option><option>AI</option><option>CT</option><option>MR</option><option>초음파</option><option>학회</option></select></div>
+<nav class="nav" aria-label="카테고리 바로가기"><a href="#company">01 우리회사 뉴스</a><a href="#policy">02 정책</a><a href="#hospital">03 학회&병원</a><a href="#competitor">04 경쟁사</a></nav>
+<div id="sections"></div>
+<section class="section"><div class="section-head"><h2>예약 수집</h2></div><p id="auto-status" role="status">상태 확인 중…</p><div class="controls"><button class="reset" id="auto-refresh">상태 확인</button><button class="reset" id="auto-test">예약 작업 1회 시험</button></div><p id="auto-result" role="status"></p><div id="auto-history"></div></section>
+<section class="section"><div class="section-head"><h2>기사 수집</h2></div><p>목록·원문·발행일을 확인합니다.</p><div class="controls"><select id="collect-source" aria-label="Information source"></select><button class="reset" id="collect-button">기사 수집</button><label style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer">메인 일치 기사 <input type="checkbox" id="show-other" style="min-width:0;width:18px;height:18px;flex:none;padding:0;margin:0"></label></div><p id="collect-result" role="status" aria-live="polite"></p><p id="selection-count"></p><div id="candidate-list"></div></section>
+<footer>Strategic Marketing Division · 사내 시범 사이트</footer></main><a class="back-top" href="#top" aria-label="맨 위로 돌아가기">↑ 맨 위로</a>
+<script defer src="/static/articles.js"></script><script defer src="/static/automation.js"></script><script defer src="/static/collect.js"></script></body></html>

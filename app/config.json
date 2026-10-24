@@ -1,0 +1,711 @@
+{
+  "version": "2026-10-22-r2",
+  "categories": [
+    {
+      "id": "company",
+      "name": "우리회사 뉴스"
+    },
+    {
+      "id": "policy",
+      "name": "정책"
+    },
+    {
+      "id": "hospital",
+      "name": "학회&병원"
+    },
+    {
+      "id": "competitor",
+      "name": "경쟁사"
+    }
+  ],
+  "sources": [
+    {
+      "id": "S012",
+      "name": "청년의사",
+      "label": "청년의사",
+      "status": "사용",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.docdocdoc.co.kr/",
+      "listingUrl": "https://www.docdocdoc.co.kr/news/articleList.html?view_type=sm",
+      "kind": "bosa"
+    },
+    {
+      "id": "S018",
+      "name": "후생신보",
+      "label": "후생신보",
+      "status": "사용",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.whosaeng.com/",
+      "listingUrl": "https://www.whosaeng.com/sub_view.html?type=abs",
+      "kind": "whosaeng"
+    },
+    {
+      "id": "S002",
+      "name": "메디게이트뉴스",
+      "label": "메디게이트뉴스",
+      "status": "사용",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.medigatenews.com/",
+      "listingUrl": "https://www.medigatenews.com/section/all",
+      "kind": "gate"
+    },
+    {
+      "id": "S015",
+      "name": "병원신문",
+      "label": "병원신문 · 병원",
+      "status": "사용",
+      "categories": [
+        "hospital"
+      ],
+      "url": "https://www.khanews.com/",
+      "listingUrl": "https://www.khanews.com/news/articleList.html?sc_sub_section_code=S2N8&view_type=sm",
+      "kind": "bosa"
+    },
+    {
+      "id": "S004",
+      "name": "메디칼타임즈",
+      "label": "메디칼타임즈",
+      "status": "사용",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.medicaltimes.com/",
+      "listingUrl": "https://www.medicaltimes.com/Main/News/List.html?MainCate=4",
+      "kind": "medicaltimes"
+    },
+    {
+      "id": "S007",
+      "name": "의협신문",
+      "label": "의협신문",
+      "status": "사용",
+      "categories": [
+        "hospital"
+      ],
+      "url": "https://www.doctorsnews.co.kr/",
+      "listingUrl": "https://www.doctorsnews.co.kr/news/articleList.html?sc_section_code=S1N10&view_type=sm",
+      "kind": "bosa"
+    },
+    {
+      "id": "S011",
+      "name": "건강보험심사평가원",
+      "label": "건강보험심사평가원",
+      "status": "사용",
+      "categories": [
+        "policy"
+      ],
+      "url": "https://www.hira.or.kr/",
+      "listingUrl": "https://www.hira.or.kr/bbsDummy.do?pgmid=HIRAA020041000100",
+      "kind": "hira"
+    },
+    {
+      "id": "S021",
+      "name": "국민건강보험공단",
+      "label": "국민건강보험공단",
+      "status": "사용",
+      "categories": [
+        "policy"
+      ],
+      "url": "https://www.nhis.or.kr/",
+      "listingUrl": "https://www.nhis.or.kr/nhis/together/wbhaea01600m01.do",
+      "kind": "nhis"
+    },
+    {
+      "id": "S025",
+      "name": "세브란스병원 보도자료",
+      "label": "세브란스병원 보도자료",
+      "status": "사용",
+      "categories": [
+        "hospital"
+      ],
+      "url": "https://sev.severance.healthcare/",
+      "listingUrl": "https://sev.severance.healthcare/sev/news/press/report.do",
+      "kind": "sev"
+    },
+    {
+      "id": "S024",
+      "name": "서울대학교병원 보도자료",
+      "label": "서울대학교병원 보도자료",
+      "status": "사용",
+      "categories": [
+        "hospital"
+      ],
+      "url": "https://www.snuh.org/",
+      "listingUrl": "https://www.snuh.org/about/news/press/list.do",
+      "kind": "snuh"
+    },
+    {
+      "id": "S023",
+      "name": "서울아산병원 보도자료",
+      "label": "서울아산병원 보도자료",
+      "status": "사용",
+      "categories": [
+        "hospital"
+      ],
+      "url": "https://news.amc.seoul.kr/",
+      "listingUrl": "https://news.amc.seoul.kr/news/con/list.do?pressChk=Y",
+      "kind": "amc"
+    },
+    {
+      "id": "S027",
+      "name": "전자신문",
+      "url": "https://www.etnews.com/",
+      "kind": "etnews",
+      "status": "사용",
+      "label": "전자신문 · AI·SW",
+      "listingUrl": "https://www.etnews.com/news/section.html?id1=04",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ]
+    },
+    {
+      "id": "S001",
+      "name": "의학신문",
+      "label": "의학신문",
+      "status": "중지",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.bosa.co.kr/",
+      "listingUrl": "https://www.bosa.co.kr/news/articleList.html?view_type=sm",
+      "kind": "bosa"
+    },
+    {
+      "id": "S003",
+      "name": "데일리메디",
+      "label": "데일리메디",
+      "status": "중지",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.dailymedi.com/",
+      "listingUrl": "https://www.dailymedi.com/news/news_list.php?ca_id=22",
+      "kind": "daily"
+    },
+    {
+      "id": "S005",
+      "name": "라포르시안",
+      "label": "라포르시안",
+      "status": "중지",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.rapportian.com/",
+      "listingUrl": "https://www.rapportian.com/news/articleList.html?view_type=sm",
+      "kind": "bosa"
+    },
+    {
+      "id": "S006",
+      "name": "의사신문",
+      "label": "의사신문",
+      "status": "중지",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "http://www.doctorstimes.com/",
+      "listingUrl": "http://www.doctorstimes.com/news/articleList.html?sc_section_code=S1N1&view_type=sm",
+      "kind": "bosa"
+    },
+    {
+      "id": "S008",
+      "name": "데일리팜",
+      "label": "데일리팜",
+      "status": "중지",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.dailypharm.com/",
+      "listingUrl": "https://www.dailypharm.com/user/news",
+      "kind": "dailypharm"
+    },
+    {
+      "id": "S009",
+      "name": "보건복지부",
+      "label": "보건복지부",
+      "status": "중지",
+      "categories": [
+        "policy"
+      ],
+      "url": "https://www.mohw.go.kr/",
+      "listingUrl": "https://www.mohw.go.kr/board.es?mid=a10503010100&bid=0027",
+      "kind": "mohw"
+    },
+    {
+      "id": "S010",
+      "name": "식품의약품안전처",
+      "label": "식품의약품안전처",
+      "status": "중지",
+      "categories": [
+        "policy"
+      ],
+      "url": "https://www.mfds.go.kr/",
+      "listingUrl": "https://www.mfds.go.kr/brd/m_99/list.do",
+      "kind": "mfds"
+    },
+    {
+      "id": "S013",
+      "name": "메디파나뉴스",
+      "label": "메디파나뉴스",
+      "status": "중지",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.medipana.com/",
+      "listingUrl": "https://www.medipana.com/news/articleList.html?view_type=sm",
+      "kind": "medipana"
+    },
+    {
+      "id": "S014",
+      "name": "병원신문",
+      "label": "병원신문 · 학회",
+      "status": "중지",
+      "categories": [
+        "hospital"
+      ],
+      "url": "https://www.khanews.com/",
+      "listingUrl": "https://www.khanews.com/news/articleList.html?sc_sub_section_code=S2N5&view_type=sm",
+      "kind": "bosa"
+    },
+    {
+      "id": "S016",
+      "name": "병원신문",
+      "label": "병원신문 · 인사, 취임",
+      "status": "중지",
+      "categories": [
+        "hospital"
+      ],
+      "url": "https://www.khanews.com/",
+      "listingUrl": "https://www.khanews.com/news/articleList.html?sc_sub_section_code=S2N88&view_type=sm",
+      "kind": "bosa"
+    },
+    {
+      "id": "S017",
+      "name": "메디컬업저버",
+      "label": "메디컬업저버",
+      "status": "중지",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.monews.co.kr/",
+      "listingUrl": "https://www.monews.co.kr/news/articleList.html?view_type=sm",
+      "kind": "bosa"
+    },
+    {
+      "id": "S019",
+      "name": "약업신문",
+      "label": "약업신문",
+      "status": "중지",
+      "categories": [
+        "company",
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.yakup.com/",
+      "listingUrl": "https://www.yakup.com/news/index.html?cat=12&cat2=124",
+      "kind": "yakup"
+    },
+    {
+      "id": "S020",
+      "name": "연합뉴스",
+      "label": "연합뉴스",
+      "status": "중지",
+      "categories": [
+        "policy",
+        "hospital",
+        "competitor"
+      ],
+      "url": "https://www.yna.co.kr/",
+      "listingUrl": "https://www.yna.co.kr/health/all",
+      "kind": "yna"
+    },
+    {
+      "id": "S022",
+      "name": "대한병원협회",
+      "label": "대한병원협회",
+      "status": "중지",
+      "categories": [
+        "policy",
+        "hospital"
+      ],
+      "url": "https://www.kha.or.kr/",
+      "listingUrl": "https://www.kha.or.kr/kha_home/press-release.do",
+      "kind": "kha"
+    },
+    {
+      "id": "S026",
+      "name": "서울성모병원 보도자료",
+      "label": "서울성모병원 보도자료",
+      "status": "중지",
+      "categories": [
+        "hospital"
+      ],
+      "url": "https://www.cmcseoul.or.kr/",
+      "listingUrl": "https://www.cmcseoul.or.kr/page/board/news",
+      "kind": "cmc"
+    }
+  ],
+  "rules": [
+    {
+      "id": "K001",
+      "status": "사용",
+      "category": "company",
+      "main": [
+        "캐논메디칼",
+        "캐논 메디칼",
+        "Canon Medical",
+        "캐논메디칼시스템즈"
+      ],
+      "auxiliary": [
+        "의료영상",
+        "CT",
+        "MRI",
+        "초음파",
+        "영상진단",
+        "혈관조영",
+        "AI",
+        "심포지엄",
+        "행사",
+        "협력",
+        "병원",
+        "설치",
+        "공개",
+        "가동",
+        "연구",
+        "업무협약"
+      ],
+      "excluded": [
+        "카메라",
+        "프린터",
+        "복합기",
+        "렌즈"
+      ]
+    },
+    {
+      "id": "K003",
+      "status": "사용",
+      "category": "policy",
+      "main": [
+        "급여",
+        "비급여",
+        "수가",
+        "복지부",
+        "정부",
+        "식약처",
+        "식품의약품안전처",
+        "심평원",
+        "건강보험심사평가원",
+        "의료정책",
+        "전문의",
+        "전공의",
+        "국립대",
+        "빅5",
+        "필수의료",
+        "Big 5",
+        "경영",
+        "병상공동활용",
+        "특수의료장비",
+        "공동활용병상",
+        "영상의료장비",
+        "영상진단장비"
+      ],
+      "auxiliary": [
+        "CT",
+        "MRI",
+        "초음파",
+        "Angio",
+        "혈관조영",
+        "영상진단",
+        "영상",
+        "AI",
+        "발표",
+        "투자"
+      ],
+      "excluded": [
+        "개인 보험 광고"
+      ]
+    },
+    {
+      "id": "K012",
+      "status": "사용",
+      "category": "policy",
+      "main": [
+        "의료기기법",
+        "디지털의료제품법",
+        "신의료기술평가",
+        "의료기기 허가",
+        "의료기기 인증",
+        "혁신의료기술",
+        "의료 AI",
+        "의료영상 AI"
+      ],
+      "auxiliary": [
+        "영상진단",
+        "의료영상",
+        "CT",
+        "MRI",
+        "초음파",
+        "혈관조영",
+        "수가",
+        "급여",
+        "건강보험",
+        "진단",
+        "인증",
+        "시행",
+        "도입",
+        "AI"
+      ],
+      "excluded": []
+    },
+    {
+      "id": "K004",
+      "status": "사용",
+      "category": "hospital",
+      "main": [
+        "영상의학회",
+        "영상의학",
+        "초음파의학회",
+        "초음파학회"
+      ],
+      "auxiliary": [
+        "학술대회",
+        "학회",
+        "연구",
+        "임상",
+        "가이드라인",
+        "대회",
+        "심포지엄",
+        "행사",
+        "AI",
+        "임명",
+        "회장",
+        "차기회장",
+        "취임",
+        "선임",
+        "연임"
+      ],
+      "excluded": [
+        "채용"
+      ]
+    },
+    {
+      "id": "K005",
+      "status": "사용",
+      "category": "hospital",
+      "main": [
+        "서울아산병원",
+        "삼성서울병원",
+        "서울대학교병원",
+        "서울대병원",
+        "세브란스",
+        "성모병원",
+        "상급종합병원",
+        "대학병원",
+        "응급실",
+        "검진센터",
+        "의료원"
+      ],
+      "auxiliary": [
+        "장비",
+        "MRI",
+        "CT",
+        "초음파",
+        "영상진단",
+        "혈관조영",
+        "Angio",
+        "AI",
+        "영상진단장비",
+        "경영",
+        "투자"
+      ],
+      "excluded": [
+        "채용"
+      ]
+    },
+    {
+      "id": "K006",
+      "status": "사용",
+      "category": "competitor",
+      "main": [
+        "지멘스 헬시니어스",
+        "Siemens Healthineers",
+        "지멘스"
+      ],
+      "auxiliary": [
+        "의료영상",
+        "CT",
+        "MRI",
+        "초음파",
+        "영상진단",
+        "혈관조영",
+        "AI",
+        "심포지엄",
+        "행사",
+        "협력",
+        "병원",
+        "설치",
+        "공개",
+        "가동",
+        "연구",
+        "업무협약"
+      ],
+      "excluded": [
+        "산업자동화"
+      ]
+    },
+    {
+      "id": "K007",
+      "status": "사용",
+      "category": "competitor",
+      "main": [
+        "GE 헬스케어",
+        "GE헬스케어",
+        "GE Healthcare",
+        "GE"
+      ],
+      "auxiliary": [
+        "의료영상",
+        "CT",
+        "MRI",
+        "초음파",
+        "영상진단",
+        "혈관조영",
+        "AI",
+        "심포지엄",
+        "행사",
+        "협력",
+        "병원",
+        "설치",
+        "공개",
+        "가동",
+        "연구",
+        "업무협약"
+      ],
+      "excluded": [
+        "항공",
+        "발전",
+        "GE버노바",
+        "항공엔진"
+      ]
+    },
+    {
+      "id": "K008",
+      "status": "사용",
+      "category": "competitor",
+      "main": [
+        "필립스",
+        "Philips",
+        "필립스 헬스케어",
+        "Philips Healthcare"
+      ],
+      "auxiliary": [
+        "의료영상",
+        "CT",
+        "MRI",
+        "초음파",
+        "영상진단",
+        "혈관조영",
+        "AI",
+        "심포지엄",
+        "행사",
+        "협력",
+        "병원",
+        "설치",
+        "공개",
+        "가동",
+        "연구",
+        "업무협약"
+      ],
+      "excluded": [
+        "생활가전",
+        "전동칫솔",
+        "면도기"
+      ]
+    },
+    {
+      "id": "K009",
+      "status": "사용",
+      "category": "competitor",
+      "main": [
+        "삼성메디슨",
+        "Samsung Medison"
+      ],
+      "auxiliary": [
+        "의료영상",
+        "CT",
+        "MRI",
+        "초음파",
+        "영상진단",
+        "혈관조영",
+        "AI",
+        "심포지엄",
+        "행사",
+        "협력",
+        "병원",
+        "설치",
+        "공개",
+        "가동",
+        "연구",
+        "업무협약"
+      ],
+      "excluded": [
+        "스마트폰"
+      ]
+    }
+  ],
+  "auto_order": [
+    "S012",
+    "S018",
+    "S002",
+    "S015",
+    "S004",
+    "S007",
+    "S011",
+    "S021",
+    "S025",
+    "S024",
+    "S023",
+    "S027"
+  ]
+}

@@ -1,0 +1,1 @@
+"""SMD local news monitor."""
