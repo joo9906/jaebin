@@ -19,6 +19,7 @@ from app.settings import SOURCE_BY_ID
 TITLE = "캐논메디칼 MRI 장비 도입 및 연구 협력 발표"
 BODY = "캐논메디칼은 새로운 자기공명영상 장비를 도입하고 환자의 검사 시간을 단축하기 위한 진료 서비스를 시작했다고 밝혔습니다."
 LISTING = f'<html><a href="/news/articleView.html?idxno=123&utm_source=test">{TITLE}</a></html>'
+AI_SUMMARY = "- MRI 장비 도입\n시사점: 검사 시간 단축 사례"
 ARTICLE = f'<html><meta property="article:published_time" content="2026-10-24T07:00:00+09:00"><div class="article-head-sub">새로운 장비 도입</div><div id="article-view-content-div"><p>{BODY}</p></div></html>'
 
 
@@ -31,6 +32,8 @@ class AppTests(unittest.TestCase):
 
         def transport(request):
             self.requests.append(str(request.url))
+            if request.url.host == "api.openai.com":
+                return httpx.Response(200, json={"choices": [{"message": {"content": AI_SUMMARY}}]})
             content = self.article if request.url.path == "/news/articleView.html" else LISTING
             return httpx.Response(200, text=content, headers={"content-type": "text/html; charset=utf-8"})
 
@@ -75,6 +78,22 @@ class AppTests(unittest.TestCase):
         # 서버를 다시 열어도 같은 SQLite 파일의 기사가 유지됩니다.
         with TestClient(create_app(self.db_path, self.client_http, run_scheduler=False)) as other:
             self.assertEqual(other.get("/api/articles").json()["count"], 1)
+
+    def test_ai_summary(self):
+        # API 키가 있으면 GPT 요약이 저장되고, 없으면 빈 요약으로 기사만 저장됩니다.
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            self.post("/api/collect", source_id="S012")
+            self.post("/api/read-body", source_id="S012")
+        article = self.client.get("/api/articles").json()["articles"][0]
+        self.assertEqual(article["ai_summary"], AI_SUMMARY)
+        self.assertTrue(any("api.openai.com" in url for url in self.requests))
+
+    def test_no_api_key_skips_ai_summary(self):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
+            self.post("/api/collect", source_id="S012")
+            self.post("/api/read-body", source_id="S012")
+        self.assertEqual(self.client.get("/api/articles").json()["articles"][0]["ai_summary"], "")
+        self.assertFalse(any("api.openai.com" in url for url in self.requests))
 
     def test_missing_date_is_error_and_can_retry_after_collection(self):
         self.article = ARTICLE.replace('property="article:published_time"', 'property="ignored"')

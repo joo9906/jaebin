@@ -3,7 +3,9 @@ const categories=[{id:'company',name:'우리회사 뉴스'},{id:'policy',name:'�
 let articles = [];
 function esc(value){return String(value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function card(a){let track='';if(a.track){track='<details class="policy"><summary>정책 추적 예시 · '+esc(a.track.name)+'</summary><dl><dt>이전 기록</dt><dd>'+esc(a.track.before)+'</dd><dt>이번 기사에서 확인할 내용</dt><dd>'+esc(a.track.change)+'</dd><dt>다음 확인 사항</dt><dd>'+esc(a.track.next)+'</dd></dl><p class="policy-note">공식 자료 검증 및 자동 이력 비교 전의 화면 예시입니다.</p></details>';}
-return '<article class="card"><div class="meta"><span class="entity">'+esc(a.entity)+'</span><span>'+esc(a.source)+' · '+esc(a.date)+'</span></div><h3>'+esc(a.title)+'</h3><p class="summary" style="white-space:pre-line">'+esc((a.subtitle?a.subtitle+'\n\n':'')+a.summary)+'</p><div class="tags">'+a.tags.map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('')+'</div>'+track+'<a class="source" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">원문 보기 ↗</a></article>';}
+// AI 요약이 있는 기사만 요약 상자를 보여줍니다.
+let aiBox='';if(a.ai_summary){aiBox='<div class="ai-summary"><strong>AI 요약</strong><p>'+esc(a.ai_summary)+'</p></div>';}
+return '<article class="card"><div class="meta"><span class="entity">'+esc(a.entity)+'</span><span>'+esc(a.source)+' · '+esc(a.date)+'</span></div><h3>'+esc(a.title)+'</h3>'+aiBox+'<p class="summary" style="white-space:pre-line">'+esc((a.subtitle?a.subtitle+'\n\n':'')+a.summary)+'</p><div class="tags">'+a.tags.map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('')+'</div>'+track+'<a class="source" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">원문 보기 ↗</a></article>';}
 const PAGE_SIZE=6;
 const visibleCounts={};
 function resetVisibleCounts(){categories.forEach(function(c){visibleCounts[c.id]=PAGE_SIZE;});}

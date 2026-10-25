@@ -6,6 +6,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
+from .ai_summary import summarize
 from .crawler import Crawler
 from .rules import article_tags, host_of, keyword_match, selection, selection_level
 from .settings import CONFIG, SOURCE_BY_ID, SOURCES, automation_settings
@@ -31,6 +32,7 @@ def dumps(value):
 class NewsService:
     def __init__(self, db, client):
         self.db = db
+        self.client = client
         self.crawler = Crawler(client)
         self.local_lock = asyncio.Lock()
 
@@ -113,6 +115,9 @@ class NewsService:
             if not detail.get("date") or not detail["excerpt"].get("first_paragraph"):
                 raise ValueError("발행일 또는 첫 문단을 확인하지 못했습니다.")
             excerpt = {**detail["excerpt"], "source_id": source["id"], "config_version": CONFIG["version"], "match_level": selection_level(groups)}
+            # 아직 AI 요약이 없는 기사만 GPT에 요약을 요청합니다.
+            if not excerpt.get("ai_summary"):
+                excerpt["ai_summary"] = await summarize(self.client, candidate["title"], detail["body"])
             # 게시와 후보 갱신을 한 트랜잭션으로 처리합니다.
             with self.db.connect() as connection:
                 connection.execute("""INSERT INTO articles(category,entity,published_date,source,title,url,summary,tags_json)
@@ -167,7 +172,7 @@ class NewsService:
             result.append({"id": row["id"], "category": groups[0]["category"], "match_level": selection_level(groups),
                            "entity": groups[0]["mainMatches"][0], "date": row["published_date"], "source": row["source"],
                            "title": row["title"], "url": row["url"], "subtitle": excerpt.get("subtitle", ""),
-                           "summary": excerpt["first_paragraph"], "tags": article_tags(groups), "track": None,
+                           "summary": excerpt["first_paragraph"], "ai_summary": excerpt.get("ai_summary", ""), "tags": article_tags(groups), "track": None,
                            "is_sample": 0, "content_type": "excerpt"})
             if len(result) == 200:
                 break
