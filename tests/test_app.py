@@ -32,6 +32,8 @@ class AppTests(unittest.TestCase):
 
         def transport(request):
             self.requests.append(str(request.url))
+            if request.url.host == "hooks-fail.example.com":
+                return httpx.Response(500)
             if request.url.host == "api.openai.com":
                 return httpx.Response(200, json={"choices": [{"message": {"content": AI_SUMMARY}}]})
             content = self.article if request.url.path == "/news/articleView.html" else LISTING
@@ -139,6 +141,77 @@ class AppTests(unittest.TestCase):
         with patch.dict(os.environ, {"AUTO_ENABLED": "true"}):
             result = self.client.portal.call(self.app.state.service.scheduled_step, False, datetime(2026, 10, 24, 6, tzinfo=KST))
             self.assertEqual(result["status"], "waiting")
+
+    def collect_one_article(self):
+        self.post("/api/collect", source_id="S012")
+        self.post("/api/read-body", source_id="S012")
+        return self.client.get("/api/articles").json()["articles"][0]
+
+    def test_csv_export(self):
+        self.collect_one_article()
+        response = self.client.get("/api/export.csv")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content.startswith("﻿".encode("utf-8")))
+        self.assertIn(TITLE, response.text)
+
+    def test_star_and_memo(self):
+        article = self.collect_one_article()
+        self.assertEqual(article["starred"], 0)
+        self.assertEqual(self.post("/api/article-star", id=article["id"], starred=True).status_code, 200)
+        self.assertEqual(self.post("/api/article-memo", id=article["id"], memo="회의 때 공유").status_code, 200)
+        saved = self.client.get("/api/articles").json()["articles"][0]
+        self.assertEqual((saved["starred"], saved["memo"]), (1, "회의 때 공유"))
+        self.assertIn("회의 때 공유", self.client.get("/api/export.csv").text)
+        self.assertEqual(self.post("/api/article-star", id="x", starred=True).status_code, 400)
+        self.assertEqual(self.post("/api/article-memo", id=article["id"], memo=5).status_code, 400)
+
+    def test_hide_and_show_again(self):
+        article = self.collect_one_article()
+        self.assertFalse(article["hidden"])
+        self.assertTrue(article["saved_at"])
+        self.assertEqual(self.post("/api/article-hide", id=article["id"], hidden=True).status_code, 200)
+        self.assertTrue(self.client.get("/api/articles").json()["articles"][0]["hidden"])
+        # 숨긴 기사는 CSV에 나오지 않습니다.
+        self.assertNotIn(TITLE, self.client.get("/api/export.csv").text)
+        self.post("/api/article-hide", id=article["id"], hidden=False)
+        self.assertFalse(self.client.get("/api/articles").json()["articles"][0]["hidden"])
+        self.assertEqual(self.post("/api/article-hide", id=article["id"], hidden="yes").status_code, 400)
+
+    def test_weekly_report(self):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            self.collect_one_article()
+            # 테스트 기사 날짜(2026-10-24) 기준 주간이 되도록 날짜를 정해 부릅니다.
+            result = self.client.portal.call(self.app.state.service.make_weekly_report, "2026-10-26")
+        self.assertEqual(result["article_count"], 1)
+        self.assertEqual(result["report"], AI_SUMMARY)
+
+    def test_weekly_report_without_key_or_articles(self):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
+            response = self.post("/api/weekly-report")
+            self.assertEqual(response.status_code, 503)
+            self.collect_one_article()
+            result = self.client.portal.call(self.app.state.service.make_weekly_report, "2026-10-26")
+        self.assertIn("OPENAI_API_KEY", result["error"])
+
+    def test_daily_briefing_sent_once(self):
+        with patch.dict(os.environ, {"AUTO_SOURCE_LIMIT": "1", "BRIEFING_WEBHOOK_URL": "https://hooks.example.com/test"}):
+            for _ in range(5):
+                self.post("/api/automation-step")
+        self.assertEqual(sum("hooks.example.com" in url for url in self.requests), 1)
+
+    def test_failed_briefing_is_not_retried_every_minute(self):
+        with patch.dict(os.environ, {"AUTO_SOURCE_LIMIT": "1", "BRIEFING_WEBHOOK_URL": "https://hooks-fail.example.com/test"}):
+            for _ in range(5):
+                self.post("/api/automation-step")
+        self.assertEqual(sum("hooks-fail.example.com" in url for url in self.requests), 1)
+
+    def test_csv_cells_are_not_formulas(self):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            article = self.collect_one_article()
+        self.post("/api/article-memo", id=article["id"], memo="=1+1")
+        text = self.client.get("/api/export.csv").text
+        self.assertIn("• MRI 장비 도입", text)
+        self.assertIn("'=1+1", text)
 
     def test_lock_released_on_failure(self):
         async def check():

@@ -1,12 +1,14 @@
 import asyncio
 import json
 import logging
+import os
 import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
-from .ai_summary import summarize
+from .ai_summary import summarize, weekly_report
+from .briefing import build_briefing, send_briefing
 from .crawler import Crawler
 from .rules import article_tags, host_of, keyword_match, selection, selection_level
 from .settings import CONFIG, SOURCE_BY_ID, SOURCES, automation_settings
@@ -123,7 +125,7 @@ class NewsService:
                 connection.execute("""INSERT INTO articles(category,entity,published_date,source,title,url,summary,tags_json)
                     VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET category=excluded.category,entity=excluded.entity,
                     published_date=excluded.published_date,source=excluded.source,title=excluded.title,summary=excluded.summary,
-                    tags_json=excluded.tags_json,review_status='published',is_sample=0,updated_at=CURRENT_TIMESTAMP""",
+                    tags_json=excluded.tags_json,is_sample=0,updated_at=CURRENT_TIMESTAMP""",
                     (groups[0]["category"], groups[0]["mainMatches"][0], detail["date"], source["name"], candidate["title"], candidate["url"], dumps(excerpt), dumps(article_tags(groups))))
                 connection.execute("""UPDATE news_candidates SET published_date=?,body_text=?,snippet=?,fetch_status='success',
                     fetch_error='',body_fetched_at=CURRENT_TIMESTAMP,suggested_category=?,matched_keyword_groups_json=? WHERE id=?""",
@@ -157,7 +159,8 @@ class NewsService:
         return result
 
     def articles(self):
-        rows = self.db.all("SELECT * FROM articles WHERE review_status='published' AND is_sample=0 ORDER BY published_date DESC,id DESC")
+        # 숨긴 기사(hidden)도 함께 보내고, 화면에서 보일지 말지 정합니다.
+        rows = self.db.all("SELECT * FROM articles WHERE review_status IN ('published','hidden') AND is_sample=0 ORDER BY published_date DESC,id DESC")
         result = []
         for row in rows:
             excerpt = parse_excerpt(row["summary"])
@@ -173,10 +176,50 @@ class NewsService:
                            "entity": groups[0]["mainMatches"][0], "date": row["published_date"], "source": row["source"],
                            "title": row["title"], "url": row["url"], "subtitle": excerpt.get("subtitle", ""),
                            "summary": excerpt["first_paragraph"], "ai_summary": excerpt.get("ai_summary", ""), "tags": article_tags(groups), "track": None,
-                           "is_sample": 0, "content_type": "excerpt"})
+                           "is_sample": 0, "content_type": "excerpt",
+                           "starred": row["starred"], "memo": row["memo"],
+                           "hidden": row["review_status"] == "hidden", "saved_at": row["created_at"]})
             if len(result) == 200:
                 break
         return result
+
+    def set_star(self, article_id, starred):
+        self.db.execute("UPDATE articles SET starred=? WHERE id=?", (1 if starred else 0, article_id))
+
+    def set_memo(self, article_id, memo):
+        self.db.execute("UPDATE articles SET memo=? WHERE id=?", (memo, article_id))
+
+    def set_hidden(self, article_id, hidden):
+        self.db.execute("UPDATE articles SET review_status=? WHERE id=?", ("hidden" if hidden else "published", article_id))
+
+    def visible_articles(self):
+        """숨기지 않은 기사만 돌려줍니다. (CSV·브리핑·주간 리포트용)"""
+        return [a for a in self.articles() if not a["hidden"]]
+
+    async def make_weekly_report(self, day):
+        """최근 7일 기사로 GPT 주간 리포트를 만듭니다. ⭐ 기사가 있으면 그것만 씁니다."""
+        since = (datetime.fromisoformat(day) - timedelta(days=6)).date().isoformat()
+        week = [a for a in self.visible_articles() if a["date"] >= since and a["match_level"] != "main"]
+        starred = [a for a in week if a["starred"]]
+        # 비용을 줄이기 위해 최대 30건만 보냅니다.
+        chosen = (starred or week)[:30]
+        if not chosen:
+            return {"error": "최근 7일 동안 리포트에 쓸 기사가 없습니다."}
+        text = await weekly_report(self.client, chosen)
+        if not text:
+            return {"error": "리포트를 만들지 못했습니다. OPENAI_API_KEY 설정과 인터넷 연결을 확인해 주세요."}
+        return {"report": text, "article_count": len(chosen), "only_starred": bool(starred), "since": since, "until": day}
+
+    async def send_daily_briefing(self, day):
+        """오늘 아직 브리핑을 안 보냈다면 웹훅으로 보냅니다. 보냈으면 True."""
+        if not os.getenv("BRIEFING_WEBHOOK_URL", "").strip():
+            return False
+        control = self.db.first("SELECT briefing_day FROM monitor_control WHERE id=1")
+        if control["briefing_day"] == day:
+            return False
+        # 실패해도 1분마다 다시 보내지 않도록, 보내기 전에 오늘 날짜를 먼저 기록합니다. (하루 한 번만 시도)
+        self.db.execute("UPDATE monitor_control SET briefing_day=? WHERE id=1", (day,))
+        return await send_briefing(self.client, build_briefing(self.visible_articles(), day))
 
     def automation_sources(self):
         return [SOURCE_BY_ID[s] for s in CONFIG["auto_order"] if s in SOURCE_BY_ID][:automation_settings()["sourceLimit"]]
@@ -218,6 +261,8 @@ class NewsService:
             kind, candidate = "list", None
             if source is None:
                 if sum(j["kind"] == "body" for j in daily) >= settings["maxBodies"]:
+                    # 하루 처리 상한에 걸려도 오늘 수집은 끝난 것이므로 브리핑을 보냅니다.
+                    await self.send_daily_briefing(day)
                     return {"status": "limit", "message": "오늘 기사 처리 상한에 도달했습니다."}
                 kind = "body"
                 for s in sources:
@@ -235,6 +280,8 @@ class NewsService:
                         source, candidate = s, rows[0]
                         break
                 if source is None:
+                    # 오늘 할 수집이 모두 끝났으니 아침 브리핑을 보냅니다.
+                    await self.send_daily_briefing(day)
                     db.execute("UPDATE monitor_control SET last_tick=CURRENT_TIMESTAMP,last_message='처리할 작업 없음' WHERE id=1")
                     return {"status": "idle", "message": "처리할 작업 없음"}
             key = f'{day}:{kind}:{candidate["id"] if candidate else source["id"]}'

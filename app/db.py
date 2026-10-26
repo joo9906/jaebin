@@ -62,6 +62,14 @@ class Database:
         with self.connect() as db:
             db.execute("PRAGMA journal_mode=WAL")
             db.executescript(SCHEMA)
+            # 예전 DB에는 없는 칸을 추가합니다. 이미 있으면 오류가 나므로 그냥 넘어갑니다.
+            for sql in ("ALTER TABLE articles ADD COLUMN starred INTEGER NOT NULL DEFAULT 0",
+                        "ALTER TABLE articles ADD COLUMN memo TEXT NOT NULL DEFAULT ''",
+                        "ALTER TABLE monitor_control ADD COLUMN briefing_day TEXT NOT NULL DEFAULT ''"):
+                try:
+                    db.execute(sql)
+                except sqlite3.OperationalError:
+                    pass
 
     def all(self, sql, args=()):
         with self.connect() as db:
