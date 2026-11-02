@@ -27,8 +27,8 @@
 - 숨긴 기사는 들어가지 않습니다.
 
 ## 관련 파일
-- `app/main.py` (`/api/export.csv`)
+- `src/index.js` (`/api/export.csv`)
 - `static/index.html` (다운로드 버튼)
 
 ## 작성일
-2026-10-26
+2026-10-26 (Cloudflare 전환 반영: 2026-11-03)

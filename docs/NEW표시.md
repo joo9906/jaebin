@@ -26,7 +26,7 @@
 
 ## 관련 파일
 - `static/articles.js` (`isNew`, `rememberLastSeen`)
-- `app/service.py` (기사의 `saved_at` 전달)
+- `src/service.js` (기사의 `saved_at` 전달)
 
 ## 작성일
-2026-10-26
+2026-10-26 (Cloudflare 전환 반영: 2026-11-03)

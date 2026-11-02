@@ -19,22 +19,28 @@ GPT가 기사마다 핵심 내용 3줄과 "우리 회사 입장의 시사점" 1�
 5. 나중에 **AI 요약 만들기**를 누르면 → 남아 있는 본문(없으면 부제목과 첫 문단)으로 GPT에 다시 요청하고 → 받은 요약을 저장합니다.
 
 ## 설정 방법
-`.env` 파일에 OpenAI 키를 넣고 서버를 다시 시작합니다.
+OpenAI 키는 비밀값이라 Cloudflare에 따로 넣습니다. (한 번만 하면 됩니다)
 ```
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-5-mini
+npx wrangler secret put OPENAI_API_KEY
 ```
+명령을 실행하면 키를 입력하라고 나옵니다. `sk-...`로 시작하는 키를 붙여 넣으세요.
+
+사용할 GPT 모델은 `wrangler.toml`에서 바꿉니다.
+```
+OPENAI_MODEL = "gpt-5-mini"
+```
+내 PC에서 시험할 때는 `.dev.vars` 파일에 `OPENAI_API_KEY=sk-...`를 적습니다.
 
 ## 알아두면 좋은 점
 - 요약 한 번마다 GPT 비용이 조금 듭니다.
 - 키가 없어도 사이트는 정상으로 돌아갑니다. 요약만 비어 있습니다.
 - 수집한 지 7일이 지나면 원문 본문이 지워지므로, 그 뒤에 다시 만드는 요약은 첫 문단만 보고 쓴 것이라 짧을 수 있습니다.
 - GPT가 쓴 글이므로 중요한 내용은 원문으로 꼭 확인하세요.
-- 요약 형식은 `app/ai_summary.py`의 `PROMPT` 문구를 고치면 바뀝니다.
+- 요약 형식은 `src/ai_summary.js`의 `PROMPT` 문구를 고치면 바뀝니다.
 
 ## 관련 파일
-- `app/ai_summary.py` (GPT 요청), `app/service.py` (`read_body`, `remake_summary`)
-- `app/main.py` (`/api/article-summary`), `static/articles.js` (요약 상자·버튼)
+- `src/ai_summary.js` (GPT 요청), `src/service.js` (`readBody`, `remakeSummary`)
+- `src/index.js` (`/api/article-summary`), `static/articles.js` (요약 상자·버튼)
 
 ## 작성일
-2026-10-30
+2026-10-30 (Cloudflare 전환 반영: 2026-11-03)

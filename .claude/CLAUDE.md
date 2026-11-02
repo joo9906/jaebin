@@ -22,22 +22,22 @@
 - 코드는 위에서 아래로 순서대로 읽으면 이해되도록 단순하게 작성합니다.
 - 함수는 짧게, 하는 일은 하나만. 이름은 무엇을 하는지 바로 알 수 있게 짓습니다.
 - 복잡한 부분에는 **쉬운 한국어 주석**으로 "이 코드가 무슨 일을 하는지" 적습니다.
-- 이미 쓰고 있는 기술(FastAPI, SQLite, httpx, BeautifulSoup, 순수 HTML/CSS/JavaScript) 안에서 해결합니다.
-- 오류 처리는 `try/except`로 잡아서 사용자에게 알기 쉬운 한국어 메시지를 보여주는 정도면 충분합니다.
-- 설정값은 `app/config.json`이나 `.env`처럼 눈에 보이는 곳에 둡니다.
+- 이미 쓰고 있는 기술(Cloudflare Worker, D1, fetch, HTMLRewriter, 순수 HTML/CSS/JavaScript) 안에서 해결합니다.
+- 오류 처리는 `try/catch`로 잡아서 사용자에게 알기 쉬운 한국어 메시지를 보여주는 정도면 충분합니다.
+- 설정값은 `src/config.json`이나 `wrangler.toml`처럼 눈에 보이는 곳에 둡니다. 비밀값은 `npx wrangler secret put`으로 넣습니다.
 - 한 번에 큰 변경을 하지 말고, 요청받은 기능만 작게 추가합니다.
 
 ## 이런 것은 하지 마세요
 
 다음은 독학 1개월 수준을 넘어서므로, 사용자가 **명시적으로 요청하지 않는 한** 사용하지 않습니다.
 
-- 새 프레임워크·라이브러리 추가 (React, Vue, TypeScript, ORM(SQLAlchemy 등), Celery, Redis 등)
+- 새 프레임워크·라이브러리 추가 (React, Vue, TypeScript, ORM, Hono 같은 Worker 프레임워크 등)
 - 디자인 패턴·아키텍처 도입 (의존성 주입, 레이어드 아키텍처, 추상 클래스, 팩토리 패턴 등)
 - 과도한 비동기·동시성 처리, 복잡한 락(lock)·트랜잭션 설계
 - Docker, CI/CD, 클라우드 인프라 설정, 마이크로서비스 구조
 - 지나친 성능 최적화, 캐싱 계층, 복잡한 정규표현식
 - 여러 파일로 잘게 쪼개는 리팩터링, 공통 유틸리티 대량 생성
-- 메타프로그래밍, 데코레이터 직접 정의, 제너레이터 체인 등 어려운 파이썬 문법
+- 메타프로그래밍, 클래스 상속, 제너레이터 체인 등 어려운 문법
 - 빌드 도구(webpack, vite 등)가 필요한 프론트엔드 구성
 
 더 좋은 방법이 있더라도 위 수준을 넘는다면 쓰지 말고, 필요하면 "이런 방법도 있지만 지금 수준에서는 이렇게 했다"고 짧게 설명만 덧붙이세요.
@@ -94,9 +94,11 @@
 ## 실행과 확인
 
 ```powershell
-.\run.cmd                                                     # 서버 실행 (http://127.0.0.1:8000)
-.\venv\Scripts\python.exe -m unittest discover -s tests -v    # 테스트 실행
+npm run dev       # 내 PC에서 실행 (http://127.0.0.1:8787, 시험용 D1 사용)
+npm test          # 테스트 실행
+npm run deploy    # Cloudflare에 올리기 (사용자가 요청할 때만)
 ```
 
-- 주요 파일: `app/main.py`(화면·API 연결), `app/service.py`(수집·저장 흐름), `app/crawler.py`(기사 가져오기), `app/rules.py`(키워드 분류), `app/ai_summary.py`(GPT 요약), `app/db.py`(DB), `static/`(화면)
-- `start.js`는 예전 Cloudflare 버전으로 참고용입니다. 수정하지 마세요.
+- 주요 파일: `src/index.js`(화면·API 연결, 예약 실행), `src/service.js`(수집·저장 흐름), `src/crawler.js`(기사 가져오기), `src/rules.js`(키워드 분류), `src/ai_summary.js`(GPT 요약), `src/db.js`·`schema.sql`(DB), `wrangler.toml`(Cloudflare 설정), `static/`(화면)
+- Cloudflare 무료 요금제 기준입니다. 요청 한 번의 계산 시간이 10ms로 짧으니 무거운 계산을 피하세요.
+- `start.js`는 아주 예전 Cloudflare 버전으로 참고용입니다. 수정하지 마세요.
