@@ -6,9 +6,23 @@ function esc(value){return String(value).replace(/[&<>"']/g,function(c){return {
 let lastSeen='';
 try{lastSeen=localStorage.getItem('lastSeenSavedAt')||'';}catch(e){}
 function isNew(a){return lastSeen!==''&&a.saved_at>lastSeen;}
+// 검색어 강조: 지금 검색창에 쓴 단어입니다. 카드 글에서 이 단어를 찾아 <mark>로 감싸 노란색으로 보여줍니다.
+let searchWord='';
+function highlight(value){
+ const text=String(value);
+ if(!searchWord)return esc(text);
+ const lower=text.toLocaleLowerCase();
+ let result='',start=0,found=lower.indexOf(searchWord);
+ while(found!==-1){
+  result+=esc(text.slice(start,found))+'<mark>'+esc(text.slice(found,found+searchWord.length))+'</mark>';
+  start=found+searchWord.length;
+  found=lower.indexOf(searchWord,start);
+ }
+ return result+esc(text.slice(start));
+}
 function card(a,others){let track='';if(a.track){track='<details class="policy"><summary>정책 추적 예시 · '+esc(a.track.name)+'</summary><dl><dt>이전 기록</dt><dd>'+esc(a.track.before)+'</dd><dt>이번 기사에서 확인할 내용</dt><dd>'+esc(a.track.change)+'</dd><dt>다음 확인 사항</dt><dd>'+esc(a.track.next)+'</dd></dl><p class="policy-note">공식 자료 검증 및 자동 이력 비교 전의 화면 예시입니다.</p></details>';}
-// AI 요약이 있는 기사만 요약 상자를 보여줍니다.
-let aiBox='';if(a.ai_summary){aiBox='<div class="ai-summary"><strong>AI 요약</strong><p>'+esc(a.ai_summary)+'</p></div>';}
+// AI 요약이 있으면 요약 상자를, 없으면 "AI 요약 만들기" 버튼을 보여줍니다.
+let aiBox='<button type="button" class="hide-button" data-summary="'+a.id+'">AI 요약 만들기</button>';if(a.ai_summary){aiBox='<div class="ai-summary"><strong>AI 요약</strong><p>'+highlight(a.ai_summary)+'</p></div>';}
 // 중요 표시(⭐) 버튼과 메모 상자입니다.
 const star='<button type="button" class="star'+(a.starred?' on':'')+'" data-star="'+a.id+'" aria-label="중요 기사 표시">'+(a.starred?'★':'☆')+'</button>';
 const memoBox='<details class="memo"><summary>'+(a.memo?'메모: '+esc(a.memo):'메모 달기')+'</summary><textarea maxlength="300" id="memo-'+a.id+'" placeholder="짧은 메모">'+esc(a.memo||'')+'</textarea><button type="button" class="reset" data-memo="'+a.id+'">저장</button></details>';
@@ -18,7 +32,7 @@ const newBadge=isNew(a)?'<span class="new-badge">NEW</span>':'';
 // 같은 소식을 다룬 다른 매체 기사 목록입니다.
 let sameNews='';
 if(others&&others.length){sameNews='<details class="same-news"><summary>같은 소식 · 외 '+others.length+'개 매체</summary><ul>'+others.map(function(o){return '<li><a href="'+esc(o.url)+'" target="_blank" rel="noopener noreferrer">'+esc(o.source)+' · '+esc(o.title)+'</a> <span class="muted">'+esc(o.date)+'</span></li>';}).join('')+'</ul></details>';}
-return '<article class="card'+(a.hidden?' hidden-card':'')+'"><div class="meta">'+newBadge+'<span class="entity">'+esc(a.entity)+'</span><span>'+esc(a.source)+' · '+esc(a.date)+'</span>'+star+'</div><h3>'+esc(a.title)+'</h3>'+aiBox+'<p class="summary" style="white-space:pre-line">'+esc((a.subtitle?a.subtitle+'\n\n':'')+a.summary)+'</p><div class="tags">'+a.tags.map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('')+'</div>'+track+sameNews+memoBox+'<div class="card-foot"><a class="source" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">원문 보기 ↗</a>'+hideButton+'</div></article>';}
+return '<article class="card'+(a.hidden?' hidden-card':'')+'"><div class="meta">'+newBadge+'<span class="entity">'+highlight(a.entity)+'</span><span>'+esc(a.source)+' · '+esc(a.date)+'</span>'+star+'</div><h3>'+highlight(a.title)+'</h3>'+aiBox+'<p class="summary" style="white-space:pre-line">'+highlight((a.subtitle?a.subtitle+'\n\n':'')+a.summary)+'</p><div class="tags">'+a.tags.map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('')+'</div>'+track+sameNews+memoBox+'<div class="card-foot"><a class="source" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">원문 보기 ↗</a>'+hideButton+'</div></article>';}
 const PAGE_SIZE=6;
 const visibleCounts={};
 function resetVisibleCounts(){categories.forEach(function(c){visibleCounts[c.id]=PAGE_SIZE;});}
@@ -105,8 +119,9 @@ function render(){
  const onlyStar=document.getElementById('only-star').checked;
  const showHidden=document.getElementById('show-hidden').checked;
  const onlyNew=document.getElementById('only-new').checked;
+ searchWord=q;
  const matches=articles.filter(function(a){
-  const text=[a.title,a.entity,a.source,a.summary].concat(a.tags).join(' ').toLocaleLowerCase();
+  const text=[a.title,a.entity,a.source,a.summary,a.ai_summary].concat(a.tags).join(' ').toLocaleLowerCase();
   return (a.match_level!=='main'||includeMain)&&(!q||text.includes(q))&&matchesTopic(a,topic)&&matchesPeriod(a,period)&&(!onlyStar||a.starred)&&(!a.hidden||showHidden)&&(!onlyNew||isNew(a));
  });
  renderStats(matches);
@@ -144,11 +159,19 @@ async function saveHidden(id,hidden){
  try{await postJson('/api/article-hide',{id:id,hidden:hidden});articles.forEach(function(a){if(a.id===id)a.hidden=hidden;});render();}
  catch(e){alert(e.message);}
 }
+// AI 요약 만들기: 서버가 GPT에 다시 요청하고, 성공하면 카드에 요약을 넣습니다.
+async function remakeSummary(button,id){
+ button.disabled=true;button.textContent='AI 요약 만드는 중…';
+ try{const d=await postJson('/api/article-summary',{id:id});articles.forEach(function(a){if(a.id===id)a.ai_summary=d.ai_summary;});render();}
+ catch(e){alert(e.message);button.disabled=false;button.textContent='AI 요약 만들기';}
+}
 document.getElementById('sections').addEventListener('click',function(event){
  const starButton=event.target.closest('button[data-star]');
  if(starButton){const id=Number(starButton.getAttribute('data-star'));const now=articles.find(function(a){return a.id===id;});saveStar(id,!(now&&now.starred));return;}
  const memoButton=event.target.closest('button[data-memo]');
  if(memoButton){saveMemo(Number(memoButton.getAttribute('data-memo')));return;}
+ const summaryButton=event.target.closest('button[data-summary]');
+ if(summaryButton){remakeSummary(summaryButton,Number(summaryButton.getAttribute('data-summary')));return;}
  const hideBtn=event.target.closest('button[data-hide]');
  if(hideBtn){const id=Number(hideBtn.getAttribute('data-hide'));const now=articles.find(function(a){return a.id===id;});saveHidden(id,!(now&&now.hidden));return;}
  const button=event.target.closest('button[data-more]');if(!button)return;

@@ -213,6 +213,31 @@ class AppTests(unittest.TestCase):
         self.assertIn("• MRI 장비 도입", text)
         self.assertIn("'=1+1", text)
 
+    def test_remake_missing_ai_summary(self):
+        # 키 없이 저장해 요약이 빈 기사를, 나중에 키를 넣고 다시 만들 수 있습니다.
+        with patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
+            article = self.collect_one_article()
+            self.assertEqual(self.post("/api/article-summary", id=article["id"]).status_code, 503)
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            response = self.post("/api/article-summary", id=article["id"])
+        self.assertEqual(response.json()["ai_summary"], AI_SUMMARY)
+        self.assertEqual(self.client.get("/api/articles").json()["articles"][0]["ai_summary"], AI_SUMMARY)
+        self.assertEqual(self.post("/api/article-summary", id="x").status_code, 400)
+
+    def test_old_articles_are_archived(self):
+        article = self.collect_one_article()
+        db = self.app.state.service.db
+        db.execute("UPDATE articles SET published_date='2020-01-01'")
+        # ⭐ 기사는 오래돼도 남깁니다.
+        db.execute("UPDATE articles SET starred=1")
+        self.app.state.service.archive_old_articles()
+        self.assertEqual(self.client.get("/api/articles").json()["count"], 1)
+        db.execute("UPDATE articles SET starred=0")
+        self.app.state.service.archive_old_articles()
+        self.assertEqual(self.client.get("/api/articles").json()["count"], 0)
+        # 지우지 않고 보관만 합니다.
+        self.assertEqual(db.first("SELECT review_status FROM articles WHERE id=?", (article["id"],))["review_status"], "archived")
+
     def test_lock_released_on_failure(self):
         async def check():
             service = self.app.state.service

@@ -11,7 +11,7 @@ from .ai_summary import summarize, weekly_report
 from .briefing import build_briefing, send_briefing
 from .crawler import Crawler
 from .rules import article_tags, host_of, keyword_match, selection, selection_level
-from .settings import CONFIG, SOURCE_BY_ID, SOURCES, automation_settings
+from .settings import CONFIG, SOURCE_BY_ID, SOURCES, automation_settings, integer
 
 log = logging.getLogger(__name__)
 KST = timezone(timedelta(hours=9))
@@ -57,6 +57,7 @@ class NewsService:
         db = self.db
         db.execute("DELETE FROM news_candidates WHERE expires_at<=CURRENT_TIMESTAMP")
         db.execute("DELETE FROM collection_runs WHERE started_at<=datetime('now','-7 days')")
+        self.archive_old_articles()
         if not scheduled and db.first("SELECT id FROM collection_runs WHERE source_id=? AND source_name=? AND started_at>datetime('now','-10 minutes')", (source["id"], source["name"])):
             raise ValueError("같은 정보원은 10분 후 다시 수집할 수 있습니다.")
         run_id = db.execute("INSERT INTO collection_runs(source_id,source_name) VALUES(?,?)", (source["id"], source["name"]))
@@ -191,6 +192,28 @@ class NewsService:
 
     def set_hidden(self, article_id, hidden):
         self.db.execute("UPDATE articles SET review_status=? WHERE id=?", ("hidden" if hidden else "published", article_id))
+
+    async def remake_summary(self, article_id):
+        """요약이 없는 기사에 AI 요약을 다시 만들어 저장합니다. 실패하면 빈 문자열을 돌려줍니다."""
+        row = self.db.first("SELECT title,url,summary FROM articles WHERE id=?", (article_id,))
+        if not row:
+            return ""
+        excerpt = parse_excerpt(row["summary"])
+        # 원문 본문이 아직 남아 있으면 본문을, 없으면(7일 지나 지워진 경우) 부제목과 첫 문단을 보냅니다.
+        candidate = self.db.first("SELECT body_text FROM news_candidates WHERE url=?", (row["url"],))
+        body = candidate["body_text"] if candidate and candidate["body_text"] else excerpt.get("subtitle", "") + "\n" + excerpt["first_paragraph"]
+        ai_summary = await summarize(self.client, row["title"], body)
+        if ai_summary:
+            excerpt["ai_summary"] = ai_summary
+            self.db.execute("UPDATE articles SET summary=? WHERE id=?", (dumps(excerpt), article_id))
+        return ai_summary
+
+    def archive_old_articles(self):
+        """오래된 기사를 보관함(archived)으로 옮겨 화면을 가볍게 합니다. ⭐나 메모가 있는 기사는 그대로 둡니다."""
+        days = integer("ARCHIVE_DAYS", 90, 7, 3650)
+        cutoff = (datetime.now(KST).date() - timedelta(days=days)).isoformat()
+        self.db.execute("""UPDATE articles SET review_status='archived' WHERE review_status IN ('published','hidden')
+            AND published_date<? AND starred=0 AND memo=''""", (cutoff,))
 
     def visible_articles(self):
         """숨기지 않은 기사만 돌려줍니다. (CSV·브리핑·주간 리포트용)"""

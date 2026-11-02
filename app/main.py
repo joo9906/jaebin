@@ -127,6 +127,17 @@ def create_app(db_path=None, client=None, run_scheduler=True):
         request.app.state.service.set_hidden(payload["id"], payload["hidden"])
         return {"ok": True}
 
+    @application.post("/api/article-summary")
+    async def article_summary(request: Request):
+        # 요약이 없는 기사에 AI 요약을 다시 만듭니다.
+        payload = await read_json(request)
+        if not isinstance(payload.get("id"), int):
+            raise HTTPException(400, "기사 번호가 필요합니다.")
+        ai_summary = await request.app.state.service.remake_summary(payload["id"])
+        if not ai_summary:
+            raise HTTPException(503, "요약을 만들지 못했습니다. OPENAI_API_KEY 설정과 인터넷 연결을 확인해 주세요.")
+        return {"ai_summary": ai_summary}
+
     @application.post("/api/weekly-report")
     async def make_weekly_report(request: Request):
         await read_json(request)
