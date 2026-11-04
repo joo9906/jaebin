@@ -32,7 +32,7 @@ const newBadge=isNew(a)?'<span class="new-badge">NEW</span>':'';
 // 같은 소식을 다룬 다른 매체 기사 목록입니다.
 let sameNews='';
 if(others&&others.length){sameNews='<details class="same-news"><summary>같은 소식 · 외 '+others.length+'개 매체</summary><ul>'+others.map(function(o){return '<li><a href="'+esc(o.url)+'" target="_blank" rel="noopener noreferrer">'+esc(o.source)+' · '+esc(o.title)+'</a> <span class="muted">'+esc(o.date)+'</span></li>';}).join('')+'</ul></details>';}
-return '<article class="card'+(a.hidden?' hidden-card':'')+'"><div class="meta">'+newBadge+'<span class="entity">'+highlight(a.entity)+'</span><span>'+esc(a.source)+' · '+esc(a.date)+'</span>'+star+'</div><h3>'+highlight(a.title)+'</h3>'+aiBox+'<p class="summary" style="white-space:pre-line">'+highlight((a.subtitle?a.subtitle+'\n\n':'')+a.summary)+'</p><div class="tags">'+a.tags.map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('')+'</div>'+track+sameNews+memoBox+'<div class="card-foot"><a class="source" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">원문 보기 ↗</a>'+hideButton+'</div></article>';}
+return '<article class="card'+(a.hidden?' hidden-card':'')+'"><div class="meta">'+newBadge+'<span class="entity">'+highlight(a.entity)+'</span><span>'+esc(a.source)+' · '+esc(a.date)+'</span>'+star+'</div><h3>'+highlight(a.title)+'</h3>'+aiBox+'<p class="summary" style="white-space:pre-line" title="눌러서 펼치기/접기">'+highlight((a.subtitle?a.subtitle+'\n\n':'')+a.summary)+'</p><div class="tags">'+a.tags.map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('')+'</div>'+track+sameNews+memoBox+'<div class="card-foot"><a class="source" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">원문 보기 ↗</a>'+hideButton+'</div></article>';}
 const PAGE_SIZE=6;
 const visibleCounts={};
 function resetVisibleCounts(){categories.forEach(function(c){visibleCounts[c.id]=PAGE_SIZE;});}
@@ -166,6 +166,9 @@ async function remakeSummary(button,id){
  catch(e){alert(e.message);button.disabled=false;button.textContent='AI 요약 만들기';}
 }
 document.getElementById('sections').addEventListener('click',function(event){
+ // 기사 요약 글을 누르면 4줄 ↔ 전체 보기로 바뀝니다.
+ const summaryText=event.target.closest('.summary');
+ if(summaryText){summaryText.classList.toggle('open');return;}
  const starButton=event.target.closest('button[data-star]');
  if(starButton){const id=Number(starButton.getAttribute('data-star'));const now=articles.find(function(a){return a.id===id;});saveStar(id,!(now&&now.starred));return;}
  const memoButton=event.target.closest('button[data-memo]');
@@ -178,6 +181,25 @@ document.getElementById('sections').addEventListener('click',function(event){
  const category=button.getAttribute('data-more');if(!categories.some(function(c){return c.id===category;}))return;
  visibleCounts[category]=(visibleCounts[category]||PAGE_SIZE)+PAGE_SIZE;render();
 });
+// 탭 메뉴: 위쪽 탭 버튼을 누르면 그 화면만 보이고 나머지 화면은 숨깁니다.
+function showTab(name){
+ // 없는 탭 이름이면 뉴스 탭을 보여줍니다.
+ if(!document.querySelector('[data-panel="'+name+'"]'))name='news';
+ document.querySelectorAll('[data-panel]').forEach(function(panel){panel.hidden=panel.getAttribute('data-panel')!==name;});
+ document.querySelectorAll('.tab').forEach(function(button){
+  const on=button.getAttribute('data-tab')===name;
+  button.classList.toggle('on',on);
+  button.setAttribute('aria-selected',on?'true':'false');
+ });
+ // 마지막으로 본 탭을 기억해 두었다가, 다음에 열 때 그 탭을 먼저 보여줍니다.
+ try{localStorage.setItem('lastTab',name);}catch(e){}
+}
+document.querySelectorAll('.tab').forEach(function(button){
+ button.addEventListener('click',function(){showTab(button.getAttribute('data-tab'));window.scrollTo(0,0);});
+});
+let lastTab='news';
+try{lastTab=localStorage.getItem('lastTab')||'news';}catch(e){}
+showTab(lastTab);
 // 이번에 본 가장 최근 저장 시각을 기억해 두고, 새 기사 수를 안내합니다.
 function rememberLastSeen(){
  const newest=articles.reduce(function(max,a){return a.saved_at>max?a.saved_at:max;},'');
