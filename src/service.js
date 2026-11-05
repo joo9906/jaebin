@@ -1,5 +1,5 @@
 // 기사 수집·저장·예약 수집의 전체 흐름입니다. (예전 app/service.py)
-import { summarize, weeklyReport } from "./ai_summary.js";
+import { summarize, periodReport } from "./ai_summary.js";
 import { buildBriefing, sendBriefing } from "./briefing.js";
 import { loadCandidates, readArticle } from "./crawler.js";
 import { all, first, run } from "./db.js";
@@ -68,21 +68,28 @@ export async function collectSource(env, source, scheduled = false) {
     let saved = 0;
     const statements = [];
     for (const a of matched) {
+      // 이미 다른 정보원이 찾아 둔 기사는 빙 검색이 덮어쓰지 않습니다. (원래 정보원이 본문을 더 자세히 읽음)
+      if (source.kind === "bing" && known.has(a.url)) continue;
       const isNew = !known.has(a.url);
       if (isNew && available <= 0) continue;
       if (isNew) {
         available--;
         saved++;
       }
-      const snippet = JSON.stringify({ match_level: a.matchLevel, config_version: "" });
-      statements.push(db.prepare(`INSERT INTO news_candidates(source_id,source_name,title,url,suggested_category,matched_keyword_groups_json,snippet)
-        VALUES(?,?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET
+      let snippet = JSON.stringify({ match_level: a.matchLevel, config_version: "" });
+      // 빙 뉴스 검색 기사는 날짜·앞부분 문장을 이미 알고 있으므로 미리 넣어 둡니다.
+      // 그러면 "본문 읽기" 때 원문 페이지를 가져오지 않고 이 내용을 그대로 씁니다.
+      if (a.description) {
+        snippet = JSON.stringify({ format: "excerpt", subtitle: "", first_paragraph: a.description, media: a.media, match_level: a.matchLevel, config_version: "" });
+      }
+      statements.push(db.prepare(`INSERT INTO news_candidates(source_id,source_name,title,url,suggested_category,matched_keyword_groups_json,snippet,published_date,body_text)
+        VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET
         source_id=excluded.source_id,source_name=excluded.source_name,title=excluded.title,
         suggested_category=excluded.suggested_category,matched_keyword_groups_json=excluded.matched_keyword_groups_json,
         snippet=CASE WHEN news_candidates.fetch_status='success' THEN news_candidates.snippet ELSE excluded.snippet END,
         processing_status='pending',fetch_status=CASE WHEN news_candidates.fetch_status='error' THEN 'pending' ELSE news_candidates.fetch_status END,
         last_collected_at=CURRENT_TIMESTAMP,expires_at=datetime('now','+7 days')`)
-        .bind(source.id, source.name, a.title, a.url, a.category, JSON.stringify(a.groups), snippet));
+        .bind(source.id, source.name, a.title, a.url, a.category, JSON.stringify(a.groups), snippet, a.date || null, a.description || ""));
     }
     const selected = statements.length;
     statements.push(db.prepare("UPDATE collection_runs SET finished_at=CURRENT_TIMESTAMP,run_status='success',found_count=?,saved_count=? WHERE id=?").bind(items.length, saved, runRow.id));
@@ -138,7 +145,9 @@ export async function readBody(env, source, articleId = null) {
     if (!detail.date || !detail.excerpt.first_paragraph) throw new Error("발행일 또는 첫 문단을 확인하지 못했습니다.");
 
     const excerpt = { ...detail.excerpt, source_id: source.id, config_version: CONFIG.version, match_level: selectionLevel(groups) };
-    // 아직 AI 요약이 없는 기사만 GPT에 요약을 요청합니다.
+    // 빙 뉴스 검색 기사는 "빙 검색" 대신 실제 매체 이름(예: 조선일보)을 출처로 보여줍니다.
+    const sourceName = excerpt.media ? excerpt.media + " (빙 검색)" : source.name;
+    // 아직 AI 인사이트가 없는 기사만 GPT에 인사이트를 요청합니다.
     if (!excerpt.ai_summary) excerpt.ai_summary = await summarize(env, candidate.title, detail.body);
 
     // 기사 게시와 후보 갱신을 한 번에 처리합니다.
@@ -147,7 +156,7 @@ export async function readBody(env, source, articleId = null) {
         VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET category=excluded.category,entity=excluded.entity,
         published_date=excluded.published_date,source=excluded.source,title=excluded.title,summary=excluded.summary,
         tags_json=excluded.tags_json,is_sample=0,updated_at=CURRENT_TIMESTAMP`)
-        .bind(groups[0].category, groups[0].mainMatches[0], detail.date, source.name, candidate.title, candidate.url, JSON.stringify(excerpt), JSON.stringify(articleTags(groups))),
+        .bind(groups[0].category, groups[0].mainMatches[0], detail.date, sourceName, candidate.title, candidate.url, JSON.stringify(excerpt), JSON.stringify(articleTags(groups))),
       db.prepare(`UPDATE news_candidates SET published_date=?,body_text=?,snippet=?,fetch_status='success',
         fetch_error='',body_fetched_at=CURRENT_TIMESTAMP,suggested_category=?,matched_keyword_groups_json=? WHERE id=?`)
         .bind(detail.date, detail.body, JSON.stringify(excerpt), groups[0].category, JSON.stringify(groups.map((g) => g.id)), candidate.id),
@@ -223,7 +232,7 @@ export async function articles(env) {
   return result;
 }
 
-// 숨기지 않은 기사만 돌려줍니다. (CSV·브리핑·주간 리포트용)
+// 숨기지 않은 기사만 돌려줍니다. (CSV·브리핑·주간/월간 리포트용)
 export async function visibleArticles(env) {
   return (await articles(env)).filter((a) => !a.hidden);
 }
@@ -240,7 +249,7 @@ export async function setHidden(env, articleId, hidden) {
   await run(env.DB, "UPDATE articles SET review_status=? WHERE id=?", [hidden ? "hidden" : "published", articleId]);
 }
 
-// 요약이 없는 기사에 AI 요약을 다시 만들어 저장합니다. 실패하면 빈 글자를 돌려줍니다.
+// 기사의 AI 인사이트를 (다시) 만들어 저장합니다. 예전 요약이 있으면 덮어씁니다. 실패하면 빈 글자를 돌려줍니다.
 export async function remakeSummary(env, articleId) {
   const row = await first(env.DB, "SELECT title,url,summary FROM articles WHERE id=?", [articleId]);
   if (!row) return "";
@@ -264,17 +273,23 @@ export async function archiveOldArticles(env) {
     AND published_date<? AND starred=0 AND memo=''`, [cutoff]);
 }
 
-// ───────────────────────── 주간 리포트 · 브리핑 ─────────────────────────
+// ───────────────────────── 주간·월간 리포트 · 브리핑 ─────────────────────────
 
-// 최근 7일 기사로 GPT 주간 리포트를 만듭니다. ⭐ 기사가 있으면 그것만 씁니다.
-export async function makeWeeklyReport(env, day) {
-  const since = addDays(day, -6);
-  const week = (await visibleArticles(env)).filter((a) => a.date >= since && a.match_level !== "main");
-  const starred = week.filter((a) => a.starred);
-  // 비용을 줄이기 위해 최대 30건만 보냅니다.
-  const chosen = (starred.length > 0 ? starred : week).slice(0, 30);
-  if (chosen.length === 0) return { error: "최근 7일 동안 리포트에 쓸 기사가 없습니다." };
-  const report = await weeklyReport(env, chosen);
+// 최근 기사로 GPT 리포트를 만듭니다. ⭐ 기사가 있으면 그것만 씁니다.
+// period가 "month"이면 최근 30일(월간), 그 밖에는 최근 7일(주간)입니다.
+export async function makeReport(env, day, period) {
+  const isMonth = period === "month";
+  const days = isMonth ? 30 : 7;
+  // 비용을 줄이기 위해 주간은 최대 30건, 월간은 최대 60건만 보냅니다.
+  const maxCount = isMonth ? 60 : 30;
+
+  const since = addDays(day, -(days - 1));
+  const inRange = (await visibleArticles(env)).filter((a) => a.date >= since && a.match_level !== "main");
+  const starred = inRange.filter((a) => a.starred);
+  const chosen = (starred.length > 0 ? starred : inRange).slice(0, maxCount);
+  if (chosen.length === 0) return { error: "최근 " + days + "일 동안 리포트에 쓸 기사가 없습니다." };
+
+  const report = await periodReport(env, chosen, period);
   if (!report) return { error: "리포트를 만들지 못했습니다. OPENAI_API_KEY 설정과 인터넷 연결을 확인해 주세요." };
   return { report, article_count: chosen.length, only_starred: starred.length > 0, since, until: day };
 }
@@ -315,6 +330,32 @@ export async function automationStatus(env) {
     failed: jobs.filter((j) => j.status === "error" || j.status === "aborted").length,
     recent,
   };
+}
+
+// 정보원별 수집 상태를 만듭니다. (수집 관리 탭의 "정보원 상태" 표)
+// 수집 기록(collection_runs)은 7일만 보관하므로 최근 7일 기준입니다.
+export async function sourceStatus(env) {
+  const rows = await all(env.DB, `SELECT source_id,
+      MAX(started_at) AS last_run,
+      MAX(CASE WHEN saved_count>0 THEN started_at END) AS last_new,
+      SUM(saved_count) AS new_count,
+      SUM(run_status='error') AS error_count
+    FROM collection_runs GROUP BY source_id`);
+  const lastErrors = await all(env.DB, `SELECT source_id, error_message FROM collection_runs
+    WHERE id IN (SELECT MAX(id) FROM collection_runs GROUP BY source_id) AND run_status='error'`);
+
+  return SOURCES.map((s) => {
+    const row = rows.find((r) => r.source_id === s.id) || {};
+    const lastError = lastErrors.find((r) => r.source_id === s.id);
+    return {
+      name: s.label || s.name,
+      lastRun: row.last_run || null, // 마지막으로 목록을 확인한 시각
+      lastNew: row.last_new || null, // 마지막으로 새 기사를 찾은 시각
+      newCount: row.new_count || 0, // 최근 7일 동안 찾은 새 기사 수
+      errorCount: row.error_count || 0, // 최근 7일 실패 횟수
+      lastError: lastError ? lastError.error_message : "", // 가장 최근 수집이 실패했다면 그 이유
+    };
+  });
 }
 
 // 1분마다 불려서 작업을 "딱 하나"만 합니다.
